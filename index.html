@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup test</title>
+<style>body{font-family:Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color:#1C2333;background:#F7F8FA}
+.box{background:#fff;border:1px solid #DDE1E8;border-radius:10px;padding:20px}.ok{color:#1B6E3A}.bad{color:#A3261B}</style></head>
+<body><div class="box"><h1>Setup test</h1><p>Checking the server and the Gemini key…</p><p id="r"></p></div>
+<script>
+fetch('/api/health').then(r=>r.json()).then(d=>{
+  const el=document.getElementById('r');
+  el.innerHTML = d.keyLoaded
+    ? '<b class="ok">Everything works.</b> The server is running and the Gemini key is connected.'
+    : '<b class="bad">The server works, but the Gemini key is missing.</b> Check the environment variable name and redeploy.';
+}).catch(()=>{document.getElementById('r').innerHTML='<b class="bad">The server function did not respond.</b> Check that the api folder was uploaded.';});
+</script></body></html>
