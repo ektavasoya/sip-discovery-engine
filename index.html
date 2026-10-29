@@ -1,14 +1,422 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Setup test</title>
-<style>body{font-family:Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 20px;color:#1C2333;background:#F7F8FA}
-.box{background:#fff;border:1px solid #DDE1E8;border-radius:10px;padding:20px}.ok{color:#1B6E3A}.bad{color:#A3261B}</style></head>
-<body><div class="box"><h1>Setup test</h1><p>Checking the server and the Gemini key…</p><p id="r"></p></div>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIP Discovery Engine: why first-time investors stop their SIPs</title>
+<meta name="description" content="A research tool that classifies public investor comments to find why first-time investors stop their SIPs, with every reason backed by a quote.">
+<style>
+:root{--bg:#F7F8FA;--panel:#FFFFFF;--ink:#1C2333;--muted:#4A5468;--faint:#7A8396;--line:#DDE1E8;--soft:#E6E9EF;
+--blue:#0072B2;--blue-ink:#FFFFFF;--orange:#D55E00;--mark:#FBE3A8;--mark-line:#C98A0B;--ok:#1B6E3A;--ok-bg:#E3F2E8;--warn:#8A4B00;--warn-bg:#FDEFD9;--bad:#A3261B;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#141A26;--panel:#1C2433;--ink:#EEF1F6;--muted:#B8C0CE;--faint:#8F99AB;--line:#2B3446;--soft:#2A3343;
+--blue:#56B4E9;--blue-ink:#0B1420;--orange:#F08A3E;--mark:#5E4A12;--mark-line:#E0A93A;--ok:#7FD3A0;--ok-bg:#163326;--warn:#F2C27A;--warn-bg:#3A2A10;--bad:#F29A90;color-scheme:dark}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Arial,Helvetica,"Noto Sans",sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+a{color:var(--blue)}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+header{padding:22px 0 6px}
+.strip{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);margin-bottom:14px}
+.line{flex:1;height:4px;background:var(--blue);border-radius:2px;position:relative}
+.line i{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--blue)}
+h1{font-size:clamp(1.6rem,3.6vw,2.3rem);line-height:1.2;margin:0}
+h2{font-size:1.25rem;margin:0 0 6px}
+h3{font-size:1.05rem;margin:0 0 6px}
+.lede{color:var(--muted);margin:6px 0 4px;max-width:70ch}
+.notice{font-size:14px;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:18px 0 18px;overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 14px;cursor:pointer}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--blue-ink);font-weight:700}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+textarea{width:100%;min-height:120px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg);color:var(--ink);font:inherit;margin-top:10px}
+.hint{font-size:14px;color:var(--muted);margin:6px 0 0}
+.trick{font-size:14px;margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--soft)}
+.status{min-height:1.6em;margin-top:10px;font-size:15px}
+.status.err{color:var(--bad)}
+.banner{border-radius:8px;padding:10px 12px;background:var(--warn-bg);color:var(--warn);font-size:14px;margin-top:10px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.card .k{font-size:13px;color:var(--muted)}
+.card .v{font-size:1.5rem;font-weight:700}
+.card .v.hi{color:var(--orange)}
+.card .v.sm{font-size:1rem;margin-top:4px}
+.res{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--panel);overflow:hidden}
+.res>button{width:100%;text-align:left;background:none;border:0;padding:10px 12px;cursor:pointer;color:var(--ink);display:grid;grid-template-columns:18px minmax(0,2.2fr) 0.7fr 1.1fr 1.4fr;gap:10px;align-items:center;font-size:14px}
+.res>button .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .muted{color:var(--faint)}
+.res .det{padding:0 12px 12px 40px;font-size:15px}
+.res .det[hidden]{display:none}
+.ctext{background:var(--bg);border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;margin:4px 0 8px}
+mark{background:var(--mark);color:var(--ink);border-bottom:2px solid var(--mark-line);padding:0 2px;border-radius:2px}
+mark sup{font-size:.7em;font-weight:700;margin-left:2px}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.thead{display:grid;grid-template-columns:18px minmax(0,2.2fr) 0.7fr 1.1fr 1.4fr;gap:10px;padding:0 12px 6px;font-size:13px;color:var(--muted)}
+.mini{position:relative;height:4px;background:var(--soft);border-radius:2px;margin:12px 0 6px;max-width:320px}
+.mini i{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--orange)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fun{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+.fun b{font-size:1.1rem;text-align:right}
+.fb{height:14px;border-radius:3px;background:var(--blue)}
+.bars button{display:grid;grid-template-columns:minmax(120px,1.2fr) 1fr 48px;gap:10px;align-items:center;width:100%;background:none;border:0;border-radius:6px;padding:6px 6px;color:var(--ink);cursor:pointer;text-align:left;font-size:14px}
+.bars button:hover,.bars button[aria-pressed="true"]{background:var(--soft)}
+.track{height:10px;background:var(--soft);border-radius:3px;overflow:hidden}
+.fill{display:block;height:100%;background:var(--blue);border-radius:3px}
+.fill.hi{background:var(--orange)}
+.val{text-align:right;color:var(--muted)}.val.hi{color:var(--orange);font-weight:700}
+.quotes{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.q{border-left:3px solid var(--line);padding:2px 0 2px 10px;margin:8px 0;font-size:15px}
+.q small{display:block;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--ok-bg);color:var(--ok)}
+.soon{border:1.5px dashed var(--line);border-radius:10px;padding:14px;color:var(--muted)}
+.exstrip{position:relative;margin:18px 4px 6px}.exline{height:4px;background:var(--blue);border-radius:2px}
+.exbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:-14px}
+.exbtns button{background:var(--panel);border:2px solid var(--blue);border-radius:999px;padding:6px 8px;color:var(--ink);cursor:pointer;font-size:14px}
+.exbtns button[aria-pressed="true"]{background:var(--blue);color:var(--blue-ink);font-weight:700}
+.exbig{font-size:1.6rem;font-weight:700}.exbig.hi{color:var(--orange)}
+.exstats{display:flex;gap:22px;flex-wrap:wrap;margin:14px 0 6px}
+.exstats div span{display:block;font-size:13px;color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.opt{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:10px;cursor:pointer;color:var(--ink);text-align:left}
+.opt.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
+.reveal{margin-top:12px;padding:12px;border-radius:8px;background:var(--soft);font-size:15px}
+.score{font-size:1.4rem;font-weight:700;color:var(--orange)}
+footer{padding:28px 0 40px;color:var(--muted);font-size:14px}
+[hidden]{display:none!important}
+@media (max-width:720px){.cards{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.res>button,.thead{grid-template-columns:18px 1fr 0.9fr}.res>button .hide-m,.thead .hide-m{display:none}.res .det{padding-left:12px}.opts{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){.fill,.fb{transition:width .6s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="strip" aria-hidden="true"><span>Month 0</span><div class="line"><i style="left:-2px"></i><i style="right:-2px"></i></div><span>Month 12</span></div>
+  <h1>Why do first-time investors stop their SIPs?</h1>
+  <p class="lede">Paste investor comments. The engine finds why SIPs end, with proof from the investor’s own words.</p>
+  <p class="notice">A research tool for a Groww growth problem. It classifies what people say; it never gives investment advice.</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button class="tab" role="tab" id="t-test" aria-controls="p-test" aria-selected="true">Test the engine</button>
+  <button class="tab" role="tab" id="t-found" aria-controls="p-found" aria-selected="false">How it works and what it found</button>
+  <button class="tab" role="tab" id="t-check" aria-controls="p-check" aria-selected="false">How it was checked</button>
+</nav>
+
+<main>
+<!-- TAB 1 -->
+<section id="p-test" role="tabpanel" aria-labelledby="t-test">
+  <div class="panel">
+    <div class="row">
+      <button class="btn" id="b-ex">Try 10 real Groww reviews</button>
+      <button class="btn" id="b-tr">Try tricky examples</button>
+    </div>
+    <label for="input" class="hint" style="display:block;margin-top:12px">Or paste comments, one per line (up to 25)</label>
+    <textarea id="input" placeholder="Example: I lost my job last month. Wanted to pause my SIP for 3 months but the app only lets me skip one, so I cancelled it."></textarea>
+    <p class="trick"><b>Try to trick it:</b> sarcasm, Hinglish, or something off-topic. It should answer “Not relevant” or “Unsure” rather than guess.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="b-run">Analyse</button>
+      <button class="btn" id="b-clear">Clear</button>
+      <button class="btn" id="b-csv" hidden>Download results (CSV)</button>
+    </div>
+    <p class="hint">Please don’t paste personal details. Text is processed by Google’s Gemini AI.</p>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div id="out" hidden>
+      <div class="cards">
+        <div class="card"><div class="k">Relevant</div><div class="v" id="c-rel"></div></div>
+        <div class="card"><div class="k">At risk of stopping</div><div class="v hi" id="c-risk"></div></div>
+        <div class="card"><div class="k">Top reason</div><div class="v sm" id="c-top"></div></div>
+      </div>
+      <div class="thead" aria-hidden="true"><span></span><span>Comment</span><span class="hide-m">Relevant</span><span>What they did</span><span class="hide-m">Why</span></div>
+      <div id="list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 2 -->
+<section id="p-found" role="tabpanel" aria-labelledby="t-found" hidden>
+  <div class="grid2">
+    <div class="panel">
+      <h2>From public comments to evidence</h2>
+      <div class="fun"><b data-count="324582">324,582</b><div><div class="fb" style="width:100%"></div><span class="hint">collected from 8 source types</span></div></div>
+      <div class="fun"><b data-count="41026">41,026</b><div><div class="fb" style="width:80%"></div><span class="hint">mention a SIP or mutual fund</span></div></div>
+      <div class="fun"><b data-count="22758">22,758</b><div><div class="fb" style="width:64%"></div><span class="hint">stories tagged by AI</span></div></div>
+      <div class="fun"><b data-count="12319">12,319</b><div><div class="fb" style="width:46%"></div><span class="hint">about the writer’s own SIP</span></div></div>
+      <p class="hint">Bars not to scale. Sources: Google Play, App Store, Reddit, YouTube, TradingQ&amp;A, ValuePickr, X and Quora.</p>
+    </div>
+    <div class="panel">
+      <h2>Reasons linked to SIPs ending</h2>
+      <p class="hint" style="margin-top:0">How often each reason comes with a stop, pause or missed payment. <b>Click a bar</b> to read real comments.</p>
+      <div class="bars" id="bars"></div>
+      <div class="quotes" id="quotes" hidden></div>
+    </div>
+    <div class="panel">
+      <h2>Groww vs other apps</h2>
+      <p class="hint" style="margin-top:0">Share of relevant app reviews mentioning each theme</p>
+      <table><thead><tr><th>Theme</th><th>Groww</th><th>Other apps</th></tr></thead><tbody>
+        <tr><td>Reliability and support</td><td>56%</td><td>54%</td></tr>
+        <tr><td>Ease of use (praise)</td><td>19%</td><td>13%</td></tr>
+        <tr><td>Rigid controls</td><td>8%</td><td>12%</td></tr>
+        <tr><td>Confusing information</td><td>6%</td><td>11%</td></tr>
+      </tbody></table>
+    </div>
+    <div class="panel">
+      <h2>Not every ending is the same</h2>
+      <p><b>Chosen:</b> the investor decides to stop, pause or reduce.</p>
+      <p><b>Not chosen:</b> 12% of at-risk stories involve a failed payment or a fund closing to new SIPs.</p>
+      <p><b>Switches:</b> 1 in 6 stopped SIPs moved to another fund or app; the investor kept investing.</p>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel" id="explorer"><h2>Where in the journey problems appear</h2><p class="hint" style="margin-top:0">Choose a stage. Based on 2,618 stories that say how long the writer had been investing.</p>
+<div class="exstrip"><div class="exline"></div><div class="exbtns" role="group" aria-label="Journey stage"></div></div><div id="exout"></div>
+<p class="hint">Timing labels agreed with hand labels on 33 of 40 checked comments. Treat stage patterns as strong signals, not exact rates.</p></div>
+    <div class="soon"><h3>Opportunities compared</h3>Coming soon: added after the user interviews settle the focus.</div>
+  </div>
+</section>
+
+<!-- TAB 3 -->
+<section id="p-check" role="tabpanel" aria-labelledby="t-check" hidden>
+  <div class="grid2">
+    <div class="panel">
+      <h2>Accuracy against bars set in advance</h2>
+      <p class="hint" style="margin-top:0">Gemini Flash Lite vs 40 comments labelled by hand</p>
+      <table><thead><tr><th>Measure</th><th>Bar</th><th>Result</th><th></th></tr></thead><tbody>
+        <tr><td>Relevant or not</td><td>85%</td><td>88%</td><td><span class="pill">Pass</span></td></tr>
+        <tr><td>What the investor did</td><td>75%</td><td>78%</td><td><span class="pill">Pass</span></td></tr>
+        <tr><td>At least one reason matches</td><td>70%</td><td>84%</td><td><span class="pill">Pass</span></td></tr>
+        <tr><td>Reason overlap</td><td>50%</td><td>66%</td><td><span class="pill">Pass</span></td></tr>
+      </tbody></table>
+      <p class="hint">For comparison, two careful humans overlapped only <b>36%</b> on reasons. Reasons are genuinely open to interpretation. Timing labels (journey stage) agreed on 33 of 40.</p>
+    </div>
+    <div class="panel">
+      <h2>Checks and corrections</h2>
+      <p><b>Quality gate:</b> every reason must quote the comment word for word, or it is removed automatically.</p>
+      <p><b>Caught and corrected:</b> a reason the investor never stated, two overstated findings, and a duplicate-removal rule that would have merged different posts.</p>
+      <p><b>Refined four times:</b> the list of reasons was improved after each round of testing.</p>
+      <p><a id="evlink" href="#" target="_blank" rel="noopener">Read the full Evidence Log ↗</a></p>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px" id="game">
+    <h2>Beat the engine</h2>
+    <p class="hint" style="margin-top:0">Read a real comment and pick the main reason. Then see what the hand label and the AI said.</p>
+    <div id="g-body"></div>
+  </div>
+</section>
+</main>
+<footer>Public comments only; no names or usernames are stored. Built as a product discovery project. Not investment advice.</footer>
+</div>
+
 <script>
-fetch('/api/health').then(r=>r.json()).then(d=>{
-  const el=document.getElementById('r');
-  el.innerHTML = d.keyLoaded
-    ? '<b class="ok">Everything works.</b> The server is running and the Gemini key is connected.'
-    : '<b class="bad">The server works, but the Gemini key is missing.</b> Check the environment variable name and redeploy.';
-}).catch(()=>{document.getElementById('r').innerHTML='<b class="bad">The server function did not respond.</b> Check that the api folder was uploaded.';});
-</script></body></html>
+const DATA = {"examples": [{"text": "Irritating frequent updates, in order to add more facilities you have degradaded your quality. Paying SIP was so easy before, I hate it now, I am soon switching from your groww app to other apps", "relevant": "yes", "action": "Thinking about stopping", "themes": [{"code": "T9", "name": "Reliability and customer support", "quote": "Irritating frequent updates, in order to add more facilities you have degradaded your quality"}], "removed": [], "confidence": "confident", "note": "Plans to switch apps after updates made paying the SIP harder.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Your autopays don't work and specially your customer service is so much relaxed , from last 3 days a return is scheduled and nobody is bothered to call back for issue raised", "relevant": "yes", "action": "Not stated", "themes": [{"code": "T2", "name": "Payment failed or missed", "quote": "Your autopays don't work"}, {"code": "T9", "name": "Reliability and customer support", "quote": "your customer service is so much relaxed"}], "removed": [], "confidence": "confident", "note": "AutoPay failing plus slow support.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "my SIP was Rejected by Groww but my amount was not refunded from 28 June . When I call to there Costomer care service they said to me refund will receive within 7 days but still it's more than 15 working days but still I don't get my refund. I complained lot's of time but no work on my problem. Such a unresponsive work done by Groww costomer service", "relevant": "yes", "action": "Not stated", "themes": [{"code": "T2", "name": "Payment failed or missed", "quote": "my SIP was Rejected by Groww but my amount was not refunded"}, {"code": "T9", "name": "Reliability and customer support", "quote": "Such a unresponsive work done by Groww costomer service"}], "removed": [], "confidence": "confident", "note": "SIP rejected and refund delayed.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "5 months ago I started sip from here...but now app not working...app not opening.. please do something", "relevant": "yes", "action": "Not stated", "themes": [{"code": "T9", "name": "Reliability and customer support", "quote": "now app not working...app not opening"}], "removed": [], "confidence": "confident", "note": "New SIP investor blocked by an app outage.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "i am using this for maintaining mutual funds and trust me this is a great app for beginners(it's been 2 years now)", "relevant": "yes", "action": "Continuing or increased", "themes": [{"code": "T12", "name": "Ease of use (positive)", "quote": "this is a great app for beginners"}], "removed": [], "confidence": "confident", "note": "Two-year user, positive.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Best app for intra trading, Mutual fund or option Trading, but commodity trading is not available this time, hope running in future.", "relevant": "no", "action": "", "themes": [], "removed": [], "confidence": "confident", "note": "About trading, not a SIP experience.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "may 31st May 2025 out of no where they credited 6500 rupees now they are charging intrest for every day on that money This app is absolutely worst...please don't invest in this app ...no help desk support you will keep calling and get frustrated....getting redeem all the money from app and uninstalling it", "relevant": "yes", "action": "Thinking about stopping", "themes": [{"code": "T9", "name": "Reliability and customer support", "quote": "no help desk support you will keep calling and get frustrated"}, {"code": "T11", "name": "Charges or tax worries", "quote": "now they are charging intrest for every day on that money"}], "removed": [], "confidence": "confident", "note": "Plans to redeem everything and uninstall.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "worst app.i want to invest in tax saver mutual fund but it is showing KYC verification not completed so you can't invest.i have completed my KYC multiple time still it is showing not completed.worst customer support", "relevant": "yes", "action": "Not started yet", "themes": [{"code": "T1", "name": "Setup and AutoPay trouble", "quote": "it is showing KYC verification not completed so you can't invest"}, {"code": "T9", "name": "Reliability and customer support", "quote": "worst customer support"}], "removed": [], "confidence": "confident", "note": "Blocked before the first investment.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Very disappointed with Groww's recent performance. Mutual fund NAVs are constantly delayed, often by days, making it impossible to track investments accurately. Customer service pushes the blame to AMCs, but the reality is AMCs receive payments late because of Groww. It's frustrating and unacceptable. nothing i can do except leaving the platform as it is unreliable.", "relevant": "yes", "action": "Thinking about stopping", "themes": [{"code": "T9", "name": "Reliability and customer support", "quote": "Mutual fund NAVs are constantly delayed, often by days"}], "removed": [], "confidence": "confident", "note": "Considering leaving because of delays.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Day by day this app is getting more and more technical issues. Earlier it was so smooth. Multiple times we have placed mutual fund orders, money gets deducted from Bank account but the order fails and now we have to file for chargeback from the bank which takes one month to process. And also wait for the technical team to solve the issues so that we can place further orders.", "relevant": "yes", "action": "Not stated", "themes": [{"code": "T2", "name": "Payment failed or missed", "quote": "money gets deducted from Bank account but the order fails"}, {"code": "T9", "name": "Reliability and customer support", "quote": "this app is getting more and more technical issues"}], "removed": [], "confidence": "confident", "note": "Failed orders after money was deducted.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}], "tricky": [{"text": "Best app for intraday and options trading, brokerage is low and charts are smooth.", "relevant": "no", "action": "", "themes": [], "removed": [], "confidence": "confident", "note": "About trading, not mutual funds or SIPs.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "SIP band kar diya bhai, market gir raha tha aur paise ki zarurat bhi thi.", "relevant": "yes", "action": "Stopped or cancelled", "themes": [{"code": "T13", "name": "Market timing and anxiety", "quote": "market gir raha tha"}, {"code": "T3", "name": "Money pressure", "quote": "paise ki zarurat bhi thi"}], "removed": [], "confidence": "confident", "note": "Stopped during a market fall while also needing money.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Oh great, another 'technical issue' and my SIP money is stuck again. Wonderful service.", "relevant": "yes", "action": "Not stated", "themes": [{"code": "T9", "name": "Reliability and customer support", "quote": "my SIP money is stuck again"}], "removed": [], "confidence": "confident", "note": "Sarcastic complaint about money stuck in a SIP.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Everyone should continue their SIP during market falls, that's how compounding works.", "relevant": "no", "action": "", "themes": [], "removed": [], "confidence": "confident", "note": "General advice to others, not the writer's own experience.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "Worst app ever. Uninstalling.", "relevant": "no", "action": "", "themes": [], "removed": [], "confidence": "unsure", "note": "No mention of SIPs or mutual funds.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}, {"text": "I lost my job last month. Wanted to pause my SIP for 3 months but the app only lets me skip one, so I cancelled it.", "relevant": "yes", "action": "Stopped or cancelled", "themes": [{"code": "T3", "name": "Money pressure", "quote": "I lost my job last month"}, {"code": "T8", "name": "Rigid controls", "quote": "the app only lets me skip one"}], "removed": [], "confidence": "confident", "note": "Cancelled after a job loss because a longer pause wasn't possible.", "new_theme": null, "journey_stage": "Not stated", "stage_quote": ""}], "bars": [{"code": "T2", "name": "Payment failed or missed", "rate": 83, "n": 457, "quotes": [{"q": "SIP की पेमेंट कुछ वजह से नहीं हो पाती है तो Retry का कोई विकल्प ही नहीं है।", "src": "Play Store"}, {"q": "sip order being rejected reason given due to fund not available", "src": "Play Store"}, {"q": "irregularities in SIP triggered which once results in me paying fine to bank", "src": "Play Store"}]}, {"code": "T10", "name": "Unwanted selling or calls", "rate": 57, "n": 294, "quotes": [{"q": "I have lot of calls from trading advisory marketing team", "src": "Play Store"}, {"q": "forcing people to open stock trading account even you have mf investment with them", "src": "Play Store"}, {"q": "buy their premium membership which makes no sense", "src": "Play Store"}]}, {"code": "T11", "name": "Charges or tax worries", "rate": 54, "n": 679, "quotes": [{"q": "bank charges me cheque bounce charges", "src": "Play Store"}, {"q": "asking for paid subscription even if you want to redeem", "src": "Play Store"}, {"q": "How much is the penalty amount charged by the bank", "src": "Reddit"}]}, {"code": "T3", "name": "Money pressure", "rate": 54, "n": 250, "quotes": [{"q": "unexpected expenses (car, electrical appliances). At that point, I either have to pause some of my SIPs", "src": "Reddit"}, {"q": "paused my SIPs mid last year due to some hopefully temporary financial difficulties.", "src": "Reddit"}, {"q": "now I am in need of some amount so i want to redeem from it", "src": "YouTube"}]}, {"code": "T13", "name": "Market timing and anxiety", "rate": 54, "n": 428, "quotes": [{"q": "Covid 2021 me pura damage ho gya market isliye mai band kr diya", "src": "YouTube"}, {"q": "We are worried, as usually, about stopping the sip", "src": "Reddit"}, {"q": "Didn't want to wait for NAV to drop further. Cash out", "src": "Reddit"}]}, {"code": "T9", "name": "Reliability and customer support", "rate": 46, "n": 3825, "quotes": [{"q": "system does double deduction of SIP", "src": "Play Store"}, {"q": "There is no real customer support to tell my problem", "src": "Play Store"}, {"q": "don't even process the order in 24 hrs", "src": "Play Store"}]}, {"code": "T8", "name": "Rigid controls", "rate": 45, "n": 947, "quotes": [{"q": "I need to know if there is a way to reduce SIP amount", "src": "Reddit"}, {"q": "want to delete my autopay but now they are saying none of our business", "src": "Play Store"}, {"q": "now they have removed that option of amendment in amount and date", "src": "Play Store"}]}, {"code": "T4", "name": "Returns disappointment", "rate": 44, "n": 694, "quotes": [{"q": "only ~2% XIRR after 4 years — what am I doing wrong?", "src": "Reddit"}, {"q": "I am currently at 3% loss in my SIPs", "src": "Reddit"}, {"q": "sold all my MFs at barely 4-6% gains", "src": "Reddit"}]}, {"code": "T15", "name": "Choosing or switching funds", "rate": 36, "n": 1279, "quotes": [{"q": "Should I quit Sip and transfer the return to another fund?", "src": "Reddit"}, {"q": "is it advisable to put it on hold and start another SIP", "src": "YouTube"}, {"q": "I am contemplating pausing my large and mid cap Sip due to possible overlap", "src": "Reddit"}]}, {"code": "T6", "name": "Confusing or missing information", "rate": 12, "n": 1876, "quotes": [{"q": "to kya sip band ho jayega investment hona ya fir next month wapas kar sakte hai", "src": "YouTube"}, {"q": "is this the right way or i should stop this", "src": "YouTube"}, {"q": "plzz btaye mai kya kru... Kaise installment pay kru..?", "src": "YouTube"}]}], "game": [{"id": "N15", "text": "Struggling to cancel the SIP since February, but no response from customer support eve after multiple emails and messages on customer support. Every month they are deducting money. Can't stop SIP or Pause or cancel. No option to remove auto Debit from bank account. Don't know how these fraud people create such big companies and fool people just my marketing gimmick with no customer service", "options": ["T13", "T9", "T8", "T3"], "human": ["T8", "T9"], "ai": ["T8", "T9"]}, {"id": "N20", "text": "SIP Autopay\n\nI missed my SIP Monthly autopay i didn’t know that due date is today i thought tomorrow. Today morning i got a message that your sip order was canceled due to insufficient fund and Applicable return charges will be levied. What to do and what’s the fine amount will be charged (Bank ICICI). Is there any second method to buy that SIP to avoid fine?", "options": ["T5", "T11", "T2", "T6"], "human": ["T2", "T11"], "ai": ["T2", "T11"]}, {"id": "N06", "text": "Time matters. This was one of my top performing funds. I had to stop the sip coz they didn’t let me step up in Groww. \nJust keep at it. Discipline pays off.", "options": ["T9", "T4", "T1", "T8"], "human": ["T1"], "ai": ["T8"]}, {"id": "N07", "text": "When someone asks me why I stopped SIP in Indian Market from last 1 year\n\nNo return from last 1 year, glad that i stopped.", "options": ["T3", "T13", "T4", "T7"], "human": ["T13"], "ai": ["T4"]}, {"id": "R4-07", "text": "This interview is the even more reason why we need to continue with SIPs... after all, SIPs are meant for long term, falling markets is when you actually increase your SIPs, not stop it.", "options": ["T14", "T4", "NR", "T13"], "human": ["NR"], "ai": ["NR"]}], "names": {"T1": "Setup and AutoPay trouble", "T2": "Payment failed or missed", "T3": "Money pressure", "T4": "Returns disappointment", "T5": "Lost interest or forgot", "T6": "Confusing or missing information", "T7": "Someone else's influence", "T8": "Rigid controls", "T9": "Reliability and customer support", "T10": "Unwanted selling or calls", "T11": "Charges or tax worries", "T12": "Ease of use (positive)", "T13": "Market timing and anxiety", "T14": "Happy with the SIP itself (positive)", "T15": "Choosing or switching funds", "T16": "Competing money priorities", "T17": "Step-up and affordability", "T99": "Something new"}, "exp": [{"stage": "First 3 months", "n": 661, "risk": 15, "notStarted": 43, "top": [{"code": "T6", "name": "Confusing or missing information", "pct": 32}, {"code": "T9", "name": "Reliability and customer support", "pct": 18}, {"code": "T15", "name": "Choosing or switching funds", "pct": 17}], "quotes": [{"q": "I’m still confused about where to start", "src": "Reddit"}, {"q": "money is deducted but not invested due to technical reasons", "src": "Play Store"}]}, {"stage": "3 to 12 months", "n": 298, "risk": 44, "notStarted": 4, "top": [{"code": "T9", "name": "Reliability and customer support", "pct": 41}, {"code": "T4", "name": "Returns disappointment", "pct": 13}, {"code": "T14", "name": "Happy with the SIP itself (positive)", "pct": 13}], "quotes": [{"q": "There is no real customer support to tell my problem", "src": "Play Store"}, {"q": "Feel like it was a mistake. Should I stop SIP in this", "src": "Reddit"}]}, {"stage": "More than a year", "n": 1659, "risk": 32, "notStarted": 1, "top": [{"code": "T14", "name": "Happy with the SIP itself (positive)", "pct": 29}, {"code": "T9", "name": "Reliability and customer support", "pct": 18}, {"code": "T15", "name": "Choosing or switching funds", "pct": 17}], "quotes": [{"q": "pretty happy with my Portfolio performance", "src": "Reddit"}, {"q": "SIP cancellation requested but amount still deducted", "src": "Reddit"}]}]};
+const EVIDENCE_LOG_URL = "";
+const N = DATA.names;
+const RISK = new Set(["Stopped or cancelled","Paused or skipped","Missed (not by choice)","Reduced amount","Thinking about stopping"]);
+const $ = id => document.getElementById(id);
+let last = [], lastRecorded = false;
+
+/* tabs */
+const tabs = [["t-test","p-test","test"],["t-found","p-found","found"],["t-check","p-check","check"]];
+function show(key){
+  for (const [t,p,k] of tabs){ const on = k===key; $(t).setAttribute("aria-selected", String(on)); $(p).hidden = !on; }
+  if (key==="found") countUp();
+  if (location.hash.slice(1)!==key) history.replaceState(null,"","#"+key);
+}
+tabs.forEach(([t,,k]) => $(t).addEventListener("click", () => show(k)));
+document.querySelector("nav.tabs").addEventListener("keydown", e => {
+  if (!["ArrowLeft","ArrowRight"].includes(e.key)) return;
+  const i = tabs.findIndex(([t]) => $(t).getAttribute("aria-selected")==="true");
+  const j = (i + (e.key==="ArrowRight"?1:-1) + tabs.length) % tabs.length; show(tabs[j][2]); $(tabs[j][0]).focus();
+});
+window.addEventListener("hashchange", () => { const k = location.hash.slice(1); if (tabs.some(x=>x[2]===k)) show(k); });
+
+/* helpers */
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function highlight(text, themes){
+  const ranges = [];
+  for (const t of themes){
+    const part = String(t.quote).split(/\.\.\.|…/)[0].trim(); if (part.length < 2) continue;
+    const words = part.split(/[^\p{L}\p{N}\p{M}]+/u).filter(Boolean).map(w => w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+    if (!words.length) continue;
+    const m = new RegExp(words.join("[^\\p{L}\\p{N}\\p{M}]+"), "iu").exec(text);
+    if (m) ranges.push([m.index, m.index + m[0].length, t.code]);
+  }
+  ranges.sort((a,b) => a[0]-b[0]); const merged = [];
+  for (const r of ranges){ const l = merged[merged.length-1]; if (l && r[0] < l[1]){ l[1] = Math.max(l[1], r[1]); if (!l[2].includes(r[2])) l[2] += ", " + r[2]; } else merged.push([...r]); }
+  let html = "", pos = 0;
+  for (const [a,b,c] of merged){ html += esc(text.slice(pos,a)) + "<mark>" + esc(text.slice(a,b)) + "<sup>" + esc(c) + "</sup></mark>"; pos = b; }
+  return html + esc(text.slice(pos));
+}
+const STAGE_POS = {"First 3 months": 12, "3 to 12 months": 55, "More than a year": 100};
+
+/* render results */
+function render(results, recorded){
+  last = results; lastRecorded = recorded;
+  const rel = results.filter(r => r.relevant==="yes");
+  const risk = rel.filter(r => RISK.has(r.action)).length;
+  const counts = {}; rel.forEach(r => r.themes.forEach(t => counts[t.code] = (counts[t.code]||0) + 1));
+  const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+  $("c-rel").textContent = `${rel.length} of ${results.length}`;
+  $("c-risk").textContent = String(risk);
+  $("c-top").textContent = top ? N[top[0]] : "None stated";
+  const list = $("list"); list.innerHTML = "";
+  results.forEach((r, i) => {
+    const box = document.createElement("div"); box.className = "res";
+    const why = r.relevant==="yes" ? (r.themes.map(t => t.name).join(", ") || "No reason stated") : (r.note || "Not relevant");
+    const head = document.createElement("button"); head.setAttribute("aria-expanded","false");
+    head.innerHTML = `<span aria-hidden="true">▸</span><span class="c">${esc(r.text)}</span><span class="hide-m ${r.relevant==="yes"?"":"muted"}">${r.relevant==="yes"?"Yes":"No"}</span><span class="${r.relevant==="yes"?"":"muted"}">${esc(r.relevant==="yes"? r.action : "–")}</span><span class="hide-m ${r.relevant==="yes"?"":"muted"}">${esc(why)}</span>`;
+    const det = document.createElement("div"); det.className = "det"; det.hidden = true;
+    let d = `<div class="ctext">${highlight(r.text, r.themes)}</div>`;
+    if (r.relevant==="yes"){
+      d += r.themes.length ? `<div class="ok">✓ ${r.themes.length===1?"The reason is":"All "+r.themes.length+" reasons are"} quoted word for word from the comment</div>` : `<div class="muted">No reason is stated, so no reason was tagged.</div>`;
+      if (r.removed && r.removed.length) d += `<div class="bad">Removed by the quality check: ${r.removed.map(x => esc(x.code)+" ("+esc(x.why)+")").join("; ")}</div>`;
+      d += `<div style="margin-top:6px"><b>Confidence:</b> ${r.confidence==="confident"?"Confident":"Unsure"}</div>`;
+      if (r.journey_stage && r.journey_stage!=="Not stated") d += `<div style="margin-top:6px"><b>Timing:</b> ${esc(r.journey_stage)}</div><div class="mini" aria-hidden="true"><i style="left:calc(${STAGE_POS[r.journey_stage]}% - 7px)"></i></div>`;
+      else d += `<div class="muted" style="margin-top:6px">Timing: not stated</div>`;
+    }
+    if (r.note) d += `<div class="muted" style="margin-top:6px">${esc(r.note)}</div>`;
+    det.innerHTML = d;
+    head.addEventListener("click", () => { const open = det.hidden; det.hidden = !open; head.setAttribute("aria-expanded", String(open)); head.firstChild.textContent = open ? "▾" : "▸"; });
+    box.append(head, det); list.append(box);
+    if (i === 0) head.click();
+  });
+  $("out").hidden = false; $("b-csv").hidden = false;
+}
+
+/* run */
+let running = false;
+async function analyse(){
+  if (running) return;
+  const lines = $("input").value.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length){ setStatus("Paste at least one comment, or try the example buttons.", true); $("input").focus(); return; }
+  const texts = lines.slice(0, 25);
+  running = true; $("b-run").disabled = true;
+  const t0 = Date.now(); const timer = setInterval(() => setStatus(`Reading ${texts.length} comment${texts.length>1?"s":""}… ${Math.round((Date.now()-t0)/1000)}s`), 500);
+  try{
+    const r = await fetch("/api/tag", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({comments: texts})});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(d.error || "error"), {code: d.error || "error"});
+    render(d.results, false);
+    setStatus(`Done in ${Math.round((Date.now()-t0)/1000)}s. ${lines.length>25?"Only the first 25 comments were analysed. ":""}Click any row to see the evidence.`);
+  }catch(e){
+    const rec = recordedFor(texts);
+    if (rec){ render(rec, true); setStatus("The live AI is busy right now, so recorded results for these examples are shown instead.", true); }
+    else setStatus(e.code==="busy" ? "The free AI allowance is busy right now. Please try again in a minute." : "Something went wrong reaching the AI. Please try again.", true);
+  }finally{ clearInterval(timer); running = false; $("b-run").disabled = false; }
+}
+function recordedFor(texts){
+  for (const set of [DATA.examples, DATA.tricky]){
+    if (set.length===texts.length && set.every((x,i) => x.text.trim()===texts[i])) return set;
+  }
+  return null;
+}
+function setStatus(t, err){ $("status").textContent = t; $("status").className = "status" + (err ? " err" : ""); }
+function load(set){ $("input").value = set.map(x => x.text.replace(/\s*\n\s*/g," ")).join("\n"); $("out").hidden = true; $("b-csv").hidden = true; setStatus(""); analyse(); }
+$("b-ex").addEventListener("click", () => load(DATA.examples));
+$("b-tr").addEventListener("click", () => load(DATA.tricky));
+$("b-run").addEventListener("click", analyse);
+$("b-clear").addEventListener("click", () => { $("input").value = ""; $("out").hidden = true; $("b-csv").hidden = true; $("list").innerHTML = ""; setStatus(""); last = []; $("input").focus(); });
+$("b-csv").addEventListener("click", () => {
+  if (!last.length) return;
+  const q = s => '"' + String(s ?? "").replace(/"/g,'""') + '"';
+  const rows = [["comment","relevant","what_they_did","reasons","quotes","confidence","timing","removed_by_check","note"].join(",")];
+  for (const r of last) rows.push([r.text, r.relevant, r.action, r.themes.map(t=>t.name).join("; "), r.themes.map(t=>t.code+": "+t.quote).join(" | "), r.confidence, r.journey_stage, (r.removed||[]).map(x=>x.code+" "+x.why).join(" | "), r.note].map(q).join(","));
+  const url = URL.createObjectURL(new Blob(["\ufeff"+rows.join("\n")], {type:"text/csv"}));
+  const a = document.createElement("a"); a.href = url; a.download = "engine_results.csv"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+/* tab 2: bars + quotes */
+(function(){
+  const box = $("bars"); const max = Math.max(...DATA.bars.map(b => b.rate));
+  DATA.bars.forEach((b, i) => {
+    const btn = document.createElement("button"); btn.setAttribute("aria-pressed","false");
+    const hi = i===0 ? " hi" : "";
+    btn.innerHTML = `<span>${esc(b.name)}</span><span class="track"><span class="fill${hi}" style="width:${b.rate/max*100}%"></span></span><span class="val${hi}">${b.rate}%</span>`;
+    btn.title = `${b.n.toLocaleString("en-IN")} stories mention this reason`;
+    btn.addEventListener("click", () => {
+      box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed","false")); btn.setAttribute("aria-pressed","true");
+      const qs = $("quotes"); qs.hidden = false;
+      qs.innerHTML = `<h3>${esc(b.name)}: ${b.n.toLocaleString("en-IN")} stories, ${b.rate}% linked to an ending</h3>` + b.quotes.map(q => `<div class="q">“${esc(q.q)}”<small>${esc(q.src)}</small></div>`).join("");
+    });
+    box.append(btn);
+  });
+})();
+let counted = false;
+function countUp(){
+  if (counted || matchMedia("(prefers-reduced-motion: reduce)").matches) return; counted = true;
+  document.querySelectorAll("[data-count]").forEach(el => {
+    const target = +el.dataset.count, t0 = performance.now();
+    const step = now => { const p = Math.min(1, (now-t0)/700); el.textContent = Math.round(target*p).toLocaleString("en-US"); if (p<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+
+
+/* tab 2: 12-month journey explorer */
+(function(){
+  const box = document.querySelector(".exbtns"), out = $("exout"); if (!box) return;
+  const label = {"First 3 months":"First 3 months","3 to 12 months":"Months 3 to 12","More than a year":"After a year"};
+  const maxRisk = Math.max(...DATA.exp.map(e => e.risk));
+  function pick(e, btn){
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed","false")); btn.setAttribute("aria-pressed","true");
+    const hi = e.risk === maxRisk;
+    out.innerHTML = `<div class="exstats"><div><span>At risk of stopping</span><b class="exbig${hi?" hi":""}">${e.risk}%</b></div><div><span>Stories</span><b class="exbig">${e.n.toLocaleString("en-US")}</b></div>${e.notStarted>=10?`<div><span>Haven’t started yet</span><b class="exbig">${e.notStarted}%</b></div>`:""}</div>
+      <p style="margin:6px 0"><b>Most talked about:</b> ${e.top.map(t => esc(t.name)+" ("+t.pct+"%)").join(", ")}</p>
+      ${e.quotes.map(q => `<div class="q">“${esc(q.q)}”<small>${esc(q.src)}</small></div>`).join("")}
+      ${hi ? `<p class="hint"><b>The danger zone:</b> the share of stories involving stopping is about three times the first three months.</p>` : ""}`;
+  }
+  DATA.exp.forEach((e, i) => {
+    const b = document.createElement("button"); b.textContent = label[e.stage]; b.setAttribute("aria-pressed","false");
+    b.addEventListener("click", () => pick(e, b)); box.append(b);
+    if (e.risk === maxRisk) setTimeout(() => pick(e, b));
+  });
+})();
+
+/* tab 3: beat the engine */
+(function(){
+  const G = DATA.game; let i = 0, score = 0;
+  const name = c => c==="NR" ? "Not relevant: advice to others" : N[c];
+  const body = $("g-body");
+  function q(){
+    const it = G[i]; let picked = null;
+    body.innerHTML = `<p class="hint">Comment ${i+1} of ${G.length}</p><div class="ctext">${esc(it.text)}</div><div class="opts" role="group" aria-label="Pick the main reason"></div><div class="reveal" hidden></div>`;
+    const opts = body.querySelector(".opts"), rev = body.querySelector(".reveal");
+    it.options.forEach(c => {
+      const b = document.createElement("button"); b.className = "opt"; b.textContent = name(c);
+      b.addEventListener("click", () => {
+        if (picked) return; picked = c; b.classList.add("sel");
+        const hit = it.human.includes(c); if (hit) score++;
+        const same = it.human.slice().sort().join()===it.ai.slice().sort().join();
+        rev.hidden = false;
+        rev.innerHTML = `<div><b>${hit ? "✓ Matches the hand label." : "✗ Different from the hand label."}</b></div>
+          <div style="margin-top:6px"><b>Hand label:</b> ${it.human.map(name).map(esc).join(", ")}</div>
+          <div><b>AI:</b> ${it.ai.map(name).map(esc).join(", ")} ${same ? "(agreed with the hand label)" : "(disagreed)"}</div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="g-next">${i < G.length-1 ? "Next comment" : "See your score"}</button></div>`;
+        $("g-next").addEventListener("click", () => { i++; i < G.length ? q() : end(); });
+        $("g-next").focus();
+      });
+      opts.append(b);
+    });
+  }
+  function end(){
+    body.innerHTML = `<div class="score">You matched the hand label on ${score} of ${G.length}.</div>
+      <p>The AI matched it on 3 of 5. Two of these comments are genuinely debatable: on a different set, two careful humans overlapped only 36% on reasons. That is why every AI answer here must show its evidence.</p>
+      <button class="btn" id="g-again">Play again</button>`;
+    $("g-again").addEventListener("click", () => { i = 0; score = 0; q(); });
+  }
+  q();
+})();
+
+/* links + start */
+if (EVIDENCE_LOG_URL && !EVIDENCE_LOG_URL.startsWith("__")) $("evlink").href = EVIDENCE_LOG_URL; else { $("evlink").removeAttribute("href"); $("evlink").textContent = "Evidence Log link: added before submission"; }
+show(tabs.some(x => x[2]===location.hash.slice(1)) ? location.hash.slice(1) : "test");
+</script>
+</body>
+</html>
