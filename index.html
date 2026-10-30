@@ -55,7 +55,13 @@ textarea{width:100%;min-height:130px;resize:vertical;border:1px solid var(--line
 .card .v{font-size:1.5rem;font-weight:700}
 .card .v.hi{color:var(--orange)}
 .card .v.sm{font-size:1rem;margin-top:4px}
-.thead,.res>button{display:grid;grid-template-columns:44px minmax(0,2.2fr) .7fr 1.1fr 1.4fr;gap:10px;align-items:center}
+.thead,.res>button{display:grid;grid-template-columns:44px minmax(0,2.1fr) .6fr 1.05fr 1.3fr 128px;gap:10px;align-items:center}
+.res>button:hover{background:var(--soft)}
+.res .tog{color:var(--blue);font-weight:700;font-size:13px;white-space:nowrap;text-align:right;border:1px solid var(--blue);border-radius:999px;padding:3px 10px;justify-self:end}
+.res>button:hover .tog{background:var(--blue);color:#fff}
+.ci:hover{border-color:var(--blue)}
+.opt:hover{border-color:var(--blue);background:var(--blue-soft)}
+.chipq:hover{border-color:var(--blue)}
 .thead{padding:0 12px 6px;font-size:13px;color:var(--muted)}
 .res{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--panel);overflow:hidden}
 .res>button{width:100%;text-align:left;background:none;border:0;padding:10px 12px;cursor:pointer;color:var(--ink);font-size:14px}
@@ -128,7 +134,7 @@ th{color:var(--muted);font-weight:600}
 footer{padding:28px 0 40px;color:var(--muted);font-size:14px}
 [hidden]{display:none!important}
 @media (max-width:820px){.acard{grid-template-columns:1fr;gap:18px}}
-@media (max-width:620px){.cards,.grid2,.opts,.split2{grid-template-columns:1fr}.thead,.res>button{grid-template-columns:36px 1fr .9fr}.hide-m{display:none}.res .det{padding-left:12px}.anav .aprog{display:none}}
+@media (max-width:620px){.cards,.grid2,.opts,.split2{grid-template-columns:1fr}.thead,.res>button{grid-template-columns:36px 1fr .9fr auto}.hide-m{display:none}.res .det{padding-left:12px}.anav .aprog{display:none}}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .6s ease}}
 </style>
 </head>
@@ -164,6 +170,7 @@ footer{padding:28px 0 40px;color:var(--muted);font-size:14px}
     </div>
     <div class="boxhead"><label for="input">Or paste your own comments, one per line (up to 25)</label><button class="btn clear" id="b-clear">✕ Clear all</button></div>
     <textarea id="input" placeholder="Example: I lost my job last month. Wanted to pause my SIP for 3 months but the app only lets me skip one, so I cancelled it."></textarea>
+    <p class="hint" id="enterhint" style="margin-top:4px">Press <b>Enter</b> to analyse. <b>Shift + Enter</b> starts a new line.</p>
     <p class="trick"><b>Try to trick it:</b> sarcasm, Hinglish, or something off-topic. It should answer “Not relevant” or “Unsure” rather than guess.</p>
     <div class="row" style="margin-top:12px">
       <button class="btn primary" id="b-run">Analyse</button>
@@ -177,7 +184,7 @@ footer{padding:28px 0 40px;color:var(--muted);font-size:14px}
         <div class="card"><div class="k">At risk of stopping</div><div class="v hi" id="c-risk"></div></div>
         <div class="card"><div class="k">Top reason</div><div class="v sm" id="c-top"></div></div>
       </div>
-      <div class="thead" aria-hidden="true"><span>#</span><span>Comment</span><span class="hide-m">Relevant</span><span>What they did</span><span class="hide-m">Why</span></div>
+      <div class="thead" aria-hidden="true"><span>#</span><span>Comment</span><span class="hide-m">Relevant</span><span>What they did</span><span class="hide-m">Why</span><span></span></div>
       <div id="list"></div>
       <div class="row" style="margin-top:12px"><button class="btn" id="b-again">↺ Start again</button></div>
     </div>
@@ -295,19 +302,19 @@ let rows = [], running = false;
 
 function rowShell(i, text){
   const box = document.createElement("div"); box.className = "res pending";
-  box.innerHTML = `<button aria-expanded="false"><span class="n">#${i+1}</span><span class="c">${esc(text)}</span><span class="hide-m muted">…</span><span class="muted">Analysing…</span><span class="hide-m muted"></span></button><div class="det" hidden></div>`;
+  box.innerHTML = `<button aria-expanded="false"><span class="n">#${i+1}</span><span class="c">${esc(text)}</span><span class="hide-m muted">…</span><span class="muted">Analysing…</span><span class="hide-m muted"></span><span></span></button><div class="det" hidden></div>`;
   return box;
 }
 function fillRow(box, i, r, how){
   box.className = "res";
   const head = box.querySelector("button"), det = box.querySelector(".det");
   if (r.error){
-    head.innerHTML = `<span class="n">#${i+1}</span><span class="c">${esc(r.text)}</span><span class="hide-m warn">⚠</span><span class="warn">Not analysed</span><span class="hide-m muted">The AI didn’t respond</span>`;
+    head.innerHTML = `<span class="n">#${i+1}</span><span class="c">${esc(r.text)}</span><span class="hide-m warn">⚠</span><span class="warn">Not analysed</span><span class="hide-m muted">The AI didn’t respond</span><span class="tog">Show evidence ▾</span>`;
     det.innerHTML = `<div class="ctext">${esc(r.text)}</div><div class="warn">⚠ The AI didn’t respond for this comment. Click Analyse to try again.</div>`;
   } else {
     const rel = r.relevant==="yes";
     const why = rel ? (r.themes.map(t => t.name).join(", ") || "No reason stated") : "Not about the writer’s own SIP";
-    head.innerHTML = `<span class="n">#${i+1}</span><span class="c">${esc(r.text)}</span><span class="hide-m ${rel?"":"muted"}">${rel?"Yes":"No"}</span><span class="${rel?"":"muted"}">${esc(rel? r.action : "–")}</span><span class="hide-m ${rel?"":"muted"}">${esc(why)}</span>`;
+    head.innerHTML = `<span class="n">#${i+1}</span><span class="c">${esc(r.text)}</span><span class="hide-m ${rel?"":"muted"}">${rel?"Yes":"No"}</span><span class="${rel?"":"muted"}">${esc(rel? r.action : "–")}</span><span class="hide-m ${rel?"":"muted"}">${esc(why)}</span><span class="tog">Show evidence ▾</span>`;
     let d = `<div class="ctext">${highlight(r.text, r.themes)}</div>`;
     if (rel){
       d += r.themes.length ? `<div class="good">✓ ${r.themes.length===1?"The reason is":"All "+r.themes.length+" reasons are"} quoted word for word from the comment</div>` : `<div class="muted">No reason is stated, so no reason was tagged.</div>`;
@@ -320,7 +327,7 @@ function fillRow(box, i, r, how){
     if (how==="saved") d += `<div class="tag" style="margin:8px 0 0">Saved result: the live AI was busy</div>`;
     det.innerHTML = d;
   }
-  head.onclick = () => { const open = det.hidden; det.hidden = !open; head.setAttribute("aria-expanded", String(open)); };
+  head.onclick = () => { const open = det.hidden; det.hidden = !open; head.setAttribute("aria-expanded", String(open)); const tg = head.querySelector(".tog"); if (tg) tg.textContent = open ? "Hide ▴" : "Show evidence ▾"; };
 }
 function summary(){
   const ok = rows.filter(r => r && !r.error), rel = ok.filter(r => r.relevant==="yes");
@@ -373,7 +380,7 @@ async function analyse(){
   const errs = rows.filter(r => r && r.error).length, saved = rows.filter((r,i) => r && !r.error && !LIVE.has(list[i])).length;
   if (errs) setStatus(`${busy ? "The free AI allowance is busy right now." : "The AI didn’t respond for some comments."} ${errs} not analysed. Wait a few seconds, then click Analyse again.${reason ? " (Reason: " + reason + ")" : ""}`, true);
   else if (saved) setStatus(`Done in ${secs}s. The live AI was busy, so saved results are shown for ${saved} comment${saved>1?"s":""}.`, true);
-  else setStatus(`Done in ${secs}s. ${texts.length>25?"Only the first 25 comments were analysed. ":""}Click any row to see the evidence.`);
+  else setStatus(`Done in ${secs}s. ${texts.length>25?"Only the first 25 comments were analysed. ":""}Click “Show evidence” on any row to see the proof.`);
   $("b-csv").hidden = false; tick("test");
   running = false; $("b-run").disabled = false; $("b-ex").disabled = false; $("b-tr").disabled = false;
 }
@@ -386,6 +393,9 @@ $("b-ex").addEventListener("click", () => {
 });
 $("b-tr").addEventListener("click", () => load(shuffle(DATA.tricky).slice(0, 6)));
 $("b-run").addEventListener("click", analyse);
+$("input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); analyse(); }
+});
 $("b-clear").addEventListener("click", clearAll);
 $("b-again").addEventListener("click", () => { clearAll(); window.scrollTo({top:0, behavior:"smooth"}); });
 $("b-csv").addEventListener("click", () => {
@@ -451,7 +461,7 @@ function renderCard(i, user){
     shuffle(it.options).forEach(c => {
       const b = document.createElement("button"); b.className = "opt"; b.textContent = name(c);
       b.addEventListener("click", () => {
-        if (picked) return; picked = c; b.classList.add("sel");
+        if (picked) return; picked = c; b.classList.add("sel"); tick("beat");
         const hit = it.human.includes(c); if (hit) score++;
         const same = it.human.slice().sort().join()===it.ai.slice().sort().join();
         rev.hidden = false;
@@ -466,7 +476,6 @@ function renderCard(i, user){
     });
   }
   function end(){
-    tick("beat");
     body.innerHTML = `<div class="score">You matched the hand label on ${score} of ${G.length}.</div>
       <p>The AI matched it on 3 of 5. Two of these comments are genuinely debatable: on another set, two careful humans overlapped only 36% on reasons. That is why every AI answer here must show its evidence.</p>
       <button class="btn" id="g-again">Play again</button>`;
