@@ -60,7 +60,7 @@ Rules:
 5. confidence: "confident" or "unsure".
 6. note: one plain sentence (at most 15 words) explaining the main call.
 
-Reply with only a JSON array, one object per comment, same order, like:
+Reply with only a JSON array, one object per comment, same order, even when there is only one comment, like:
 [{"id":"c1","relevant":"yes","action":"Paused or skipped","themes":[{"code":"T3","quote":"lost my job"}],"new_theme":null,"journey_stage":"Not stated","stage_quote":null,"confidence":"confident","note":"Paused after a job loss."}]
 
 Comments:
@@ -106,13 +106,20 @@ function gate(item, raw) {
 }
 function parseArray(text) {
   let t = String(text || "").trim();
-  const m = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (m) t = m[1];
-  const s = t.indexOf("["), e = t.lastIndexOf("]");
-  const v = JSON.parse(s >= 0 && e > s ? t.slice(s, e + 1) : t);
-  return Array.isArray(v) ? v : (v && Array.isArray(v.results) ? v.results : []);
+  const m = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (m) t = m[1].trim();
+  // Decide by whichever comes first: a list "[" or a single object "{".
+  const ia = t.indexOf("["), io = t.indexOf("{");
+  let v;
+  if (ia >= 0 && (io < 0 || ia < io)) v = JSON.parse(t.slice(ia, t.lastIndexOf("]") + 1));
+  else if (io >= 0) v = JSON.parse(t.slice(io, t.lastIndexOf("}") + 1));
+  else return [];
+  if (Array.isArray(v)) return v;
+  if (v && Array.isArray(v.results)) return v.results;
+  if (v && typeof v === "object" && ("relevant" in v || "id" in v)) return [v];
+  return [];
 }
 class Busy extends Error {}
-class Upstream extends Error {}
+class Upstream extends Error { constructor(m){ super(m); this.detail = m; } }
 async function callGemini(prompt) {
   const gen = { temperature: 0, responseMimeType: "application/json" };
   if (THINKING_OFF_OK) gen.thinkingConfig = { thinkingBudget: 0 };
@@ -148,7 +155,7 @@ async function tagChunk(items) {
       if (attempt === 0) { await sleep(800); continue; }
     }
   }
-  throw lastErr instanceof Busy ? lastErr : new Upstream("failed");
+  throw lastErr instanceof Busy ? lastErr : new Upstream((lastErr && lastErr.message) || "failed");
 }
 
 module.exports = async (req, res) => {
@@ -173,7 +180,8 @@ module.exports = async (req, res) => {
     return res.status(200).json({ model: MODEL, results });
   } catch (e) {
     if (e instanceof Busy) return res.status(429).json({ error: "busy" });
-    return res.status(502).json({ error: "upstream" });
+    console.error("tag failed:", e && e.message);
+    return res.status(502).json({ error: "upstream", detail: String((e && e.detail) || "unknown").slice(0, 60) });
   }
 };
 module.exports._test = { gate, quoteFound, parseArray, buildPrompt };

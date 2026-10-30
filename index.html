@@ -333,7 +333,7 @@ function summary(){
 async function callApi(texts){
   const r = await fetch("/api/tag", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({comments: texts})});
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(d.error || "error"), {code: d.error || "error"});
+  if (!r.ok) throw Object.assign(new Error(d.error || "error"), {code: d.error || "error", detail: d.detail || ("HTTP " + r.status)});
   return d.results;
 }
 async function analyse(){
@@ -346,7 +346,7 @@ async function analyse(){
   rows = new Array(list.length).fill(null);
   const boxes = list.map((t, i) => { const b = rowShell(i, t); $("list").append(b); return b; });
   summary();
-  const t0 = Date.now(); let doneN = 0, busy = false, failed = false;
+  const t0 = Date.now(); let doneN = 0, busy = false, failed = false, reason = "";
   const tickStatus = () => setStatus(`Analysing ${list.length} comment${list.length>1?"s":""}: ${doneN} done… ${Math.round((Date.now()-t0)/1000)}s`);
   const timer = setInterval(tickStatus, 400); tickStatus();
   const finish = (i, r, how) => { rows[i] = r; fillRow(boxes[i], i, r, how); doneN++; summary(); if (doneN===1) boxes[i].querySelector("button").click(); };
@@ -362,7 +362,7 @@ async function analyse(){
         const res = await callApi(g.map(i => list[i]));
         res.forEach((r, j) => { const i = g[j]; const out = {...r, text: list[i]}; LIVE.set(list[i], out); finish(i, out, "live"); });
       } catch (e) {
-        if (e.code==="busy") busy = true; else failed = true;
+        if (e.code==="busy") busy = true; else { failed = true; reason = e.detail || e.message || ""; }
         g.forEach(i => { const rec = RECORDED.get(list[i]); finish(i, rec ? {...rec} : {text: list[i], error: true}, rec ? "saved" : "error"); });
       }
     }
@@ -371,7 +371,7 @@ async function analyse(){
   clearInterval(timer);
   const secs = Math.round((Date.now()-t0)/1000);
   const errs = rows.filter(r => r && r.error).length, saved = rows.filter((r,i) => r && !r.error && !LIVE.has(list[i])).length;
-  if (errs) setStatus(`${busy ? "The free AI allowance is busy right now." : "The AI didn’t respond for some comments."} ${errs} not analysed. Wait a few seconds, then click Analyse again.`, true);
+  if (errs) setStatus(`${busy ? "The free AI allowance is busy right now." : "The AI didn’t respond for some comments."} ${errs} not analysed. Wait a few seconds, then click Analyse again.${reason ? " (Reason: " + reason + ")" : ""}`, true);
   else if (saved) setStatus(`Done in ${secs}s. The live AI was busy, so saved results are shown for ${saved} comment${saved>1?"s":""}.`, true);
   else setStatus(`Done in ${secs}s. ${texts.length>25?"Only the first 25 comments were analysed. ":""}Click any row to see the evidence.`);
   $("b-csv").hidden = false; tick("test");
