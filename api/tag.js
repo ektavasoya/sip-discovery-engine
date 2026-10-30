@@ -3,7 +3,6 @@
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 const MAX_COMMENTS = 25, MAX_CHARS = 1200, CHUNK = 5;
 const CACHE = new Map(); // warm-instance cache: same comment text -> same result
-let THINKING_OFF_OK = true; // set to false if the model rejects the thinking setting
 
 const CODEBOOK = [
   ["T1","Setup and AutoPay trouble","A problem while setting up: the SIP, AutoPay or mandate, KYC before the first investment, the first instalment, or the wrong date being set."],
@@ -120,24 +119,38 @@ function parseArray(text) {
 }
 class Busy extends Error {}
 class Upstream extends Error { constructor(m){ super(m); this.detail = m; } }
+// Request settings, from fastest to most basic. If Gemini rejects one ("bad request"),
+// the next is tried, and the first one that works is remembered for later requests.
+const LEVELS = [
+  { temperature: 0, responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 0 } },
+  { temperature: 0, responseMimeType: "application/json" },
+  { temperature: 0 }
+];
+let LEVEL = 0;
+function geminiMessage(raw) {
+  try { const j = JSON.parse(raw); return String((j.error && j.error.message) || raw); } catch { return String(raw || ""); }
+}
 async function callGemini(prompt) {
-  const gen = { temperature: 0, responseMimeType: "application/json" };
-  if (THINKING_OFF_OK) gen.thinkingConfig = { thinkingBudget: 0 };
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: gen })
-  });
-  if (r.status === 400 && THINKING_OFF_OK) {
-    const t = await r.text().catch(() => "");
-    if (/thinking/i.test(t)) { THINKING_OFF_OK = false; return callGemini(prompt); }
-    throw new Upstream("bad request");
+  for (let lv = LEVEL; lv < LEVELS.length; lv++) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: LEVELS[lv] })
+    });
+    if (r.ok) {
+      LEVEL = lv;
+      const d = await r.json();
+      const parts = (((d.candidates || [])[0] || {}).content || {}).parts || [];
+      return parts.filter(p => !p.thought).map(p => p.text || "").join("");
+    }
+    const raw = await r.text().catch(() => "");
+    const msg = geminiMessage(raw).replace(/\s+/g, " ").slice(0, 140);
+    console.error(`Gemini ${r.status} at settings level ${lv}: ${msg}`);
+    if (r.status === 429) throw new Busy("rate limited");
+    if (r.status === 400 && lv < LEVELS.length - 1) continue; // try simpler settings
+    throw new Upstream(`Gemini ${r.status}: ${msg}`);
   }
-  if (r.status === 429) throw new Busy("rate limited");
-  if (!r.ok) throw new Upstream(`Gemini error ${r.status}`);
-  const d = await r.json();
-  const parts = (((d.candidates || [])[0] || {}).content || {}).parts || [];
-  return parts.filter(p => !p.thought).map(p => p.text || "").join("");
+  throw new Upstream("Gemini rejected every settings level");
 }
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 async function tagChunk(items) {
@@ -181,7 +194,7 @@ module.exports = async (req, res) => {
   } catch (e) {
     if (e instanceof Busy) return res.status(429).json({ error: "busy" });
     console.error("tag failed:", e && e.message);
-    return res.status(502).json({ error: "upstream", detail: String((e && e.detail) || "unknown").slice(0, 60) });
+    return res.status(502).json({ error: "upstream", detail: String((e && e.detail) || "unknown").slice(0, 160) });
   }
 };
 module.exports._test = { gate, quoteFound, parseArray, buildPrompt };
