@@ -1,0 +1,6 @@
+.vercel
+.env*
+.claude/
+CLAUDE.md
+PROJECT_CONTEXT.md
+notes/
